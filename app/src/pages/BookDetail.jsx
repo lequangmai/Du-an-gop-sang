@@ -28,36 +28,30 @@ const BookDetail = () => {
       setBook(data)
     } catch (error) {
       console.error('Lỗi khi tải chi tiết:', error.message)
-      // Mock data for demo
-      setBook({
-        id: id,
-        title: 'Nhà Giả Kim',
-        author: 'Paulo Coelho',
-        description: 'Câu chuyện về chuyến phiêu lưu của cậu bé chăn cừu Santiago đi tìm kho báu ở kim tự tháp Ai Cập. Một cuốn sách truyền cảm hứng mạnh mẽ về việc theo đuổi ước mơ.',
-        image_url: 'https://cdn0.fahasa.com/media/catalog/product/n/h/nhagiakim.jpg',
-        condition: 'good',
-        category: 'Văn học',
-        status: 'available',
-        deposit_required: true,
-        deposit_amount: 50000,
-        location_city: 'TP. Hồ Chí Minh',
-        location_district: 'Quận 1',
-        location_ward: 'P. Bến Nghé',
-        profiles: { 
-          full_name: 'Trần Minh Tuấn', 
-          rating: 4.8, 
-          rating_count: 12,
-          books_shared: 5,
-          trust_score: 98
-        }
-      })
     } finally {
       setLoading(false)
     }
   }
 
-  if (loading) return <div className="p-10 text-center">Đang tải...</div>
-  if (!book) return <div className="p-10 text-center">Không tìm thấy sách.</div>
+  if (loading) return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-12 h-12 border-4 border-primary-200 border-t-primary-500 rounded-full animate-spin"></div>
+        <p className="text-primary-800 font-medium">Đang tải thông tin sách...</p>
+      </div>
+    </div>
+  )
+  
+  if (!book) return (
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-10 text-center">
+      <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-4">
+        <AlertCircle size={40} />
+      </div>
+      <h3 className="text-xl font-bold text-slate-800 mb-2">Không tìm thấy sách</h3>
+      <p className="text-slate-500 mb-6">Cuốn sách này có thể đã bị gỡ hoặc không tồn tại.</p>
+      <button onClick={() => navigate('/')} className="btn btn-primary px-8">Quay lại trang chủ</button>
+    </div>
+  )
 
   return (
     <div className="bg-slate-50 min-h-screen">
@@ -137,13 +131,22 @@ const BookDetail = () => {
       </div>
 
       {/* Action Footer */}
-      <div className="bg-white border-t border-slate-100 p-6 sticky bottom-0 z-20 flex gap-4">
-        <button
-          onClick={() => navigate(`/borrow/${book.id}`)}
-          className="flex-1 btn btn-primary py-4 text-lg flex items-center justify-center gap-2"
-        >
-          <Send size={20} /> Gửi yêu cầu mượn
-        </button>
+      <div className="bg-white border-t border-slate-100 p-6 sticky bottom-0 z-20 flex gap-4 shadow-2xl">
+        {book.status === 'borrowed' ? (
+          <button
+            disabled
+            className="flex-1 py-4 bg-slate-100 text-slate-400 rounded-3xl text-lg font-bold flex items-center justify-center gap-2 cursor-not-allowed"
+          >
+            <AlertCircle size={20} /> Sách đang được mượn
+          </button>
+        ) : (
+          <button
+            onClick={() => navigate(`/borrow/${book.id}`)}
+            className="flex-1 btn btn-primary py-4 text-lg flex items-center justify-center gap-2 shadow-lg shadow-primary-500/30 active:scale-[0.98] transition-all"
+          >
+            <Send size={20} /> Gửi yêu cầu mượn
+          </button>
+        )}
       </div>
     </div>
   )

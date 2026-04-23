@@ -54,7 +54,7 @@ const DEMO_BOOKS = [
   }
 ]
 
-const DISTRICTS = ['Quận 1', 'Quận 7', 'Bình Thạnh', 'Thủ Đức', 'Gò Vấp']
+const DISTRICTS = ['Quận 1', 'Quận 3', 'Quận 4', 'Quận 5', 'Quận 6', 'Quận 7', 'Quận 8', 'Quận 10', 'Quận 11', 'Quận 12', 'Bình Tân', 'Bình Thạnh', 'Gò Vấp', 'Phú Nhuận', 'Tân Bình', 'Tân Phú', 'TP Thủ Đức', 'Bình Chánh', 'Cần Giờ', 'Củ Chi', 'Hóc Môn', 'Nhà Bè']
 
 const Home = () => {
   const [books, setBooks] = useState([])
@@ -75,8 +75,9 @@ const Home = () => {
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      setBooks(data)
-    } catch {
+      setBooks(data || [])
+    } catch (err) {
+      console.error(err)
       setBooks(DEMO_BOOKS)
     } finally {
       setLoading(false)
@@ -199,8 +200,8 @@ const BookCard = ({ book }) => {
           </button>
         </div>
         <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
-          <span className="text-white text-[10px] font-bold uppercase tracking-widest bg-primary-500/80 px-2 py-0.5 rounded">
-            CÓ SẴN
+          <span className={`text-white text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded ${book.status === 'borrowed' ? 'bg-amber-500/80' : 'bg-primary-500/80'}`}>
+            {book.status === 'borrowed' ? 'ĐANG ĐƯỢC MƯỢN' : 'CÓ SẴN'}
           </span>
         </div>
       </div>

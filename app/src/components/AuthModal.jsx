@@ -1,13 +1,22 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { X, BookOpen, Mail, Lock, User, Eye, EyeOff, ArrowRight, CheckCircle2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
-const AuthModal = ({ isOpen, onClose }) => {
-  const [mode, setMode] = useState('login') // 'login' | 'signup' | 'success'
+const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
+  const [mode, setMode] = useState(initialMode) // 'login' | 'signup' | 'success'
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [form, setForm] = useState({ email: '', password: '', fullName: '' })
+
+  useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode)
+      setForm({ email: '', password: '', fullName: '' })
+      setError('')
+    }
+  }, [isOpen, initialMode])
+
 
   if (!isOpen) return null
 

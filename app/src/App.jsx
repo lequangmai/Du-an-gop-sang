@@ -14,11 +14,18 @@ import Landing from './pages/Landing'
 import Notifications from './pages/Notifications'
 import BorrowFlow from './pages/BorrowFlow'
 import AddBook from './pages/AddBook'
+import Chat from './pages/Chat'
 
 function App() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
   const [authOpen, setAuthOpen] = useState(false)
+  const [authMode, setAuthMode] = useState('login')
+
+  const openAuth = (mode = 'login') => {
+    setAuthMode(mode)
+    setAuthOpen(true)
+  }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -46,15 +53,16 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 font-outfit">
-      <Navbar session={session} onAuthOpen={() => setAuthOpen(true)} />
+      <Navbar session={session} onAuthOpen={openAuth} />
       <main className="max-w-md mx-auto pb-24 md:max-w-6xl md:px-4">
         <Routes>
-          <Route path="/" element={session ? <Home /> : <Landing onAuthOpen={() => setAuthOpen(true)} />} />
+          <Route path="/" element={session ? <Home /> : <Landing onAuthOpen={openAuth} />} />
           <Route path="/book/:id" element={<BookDetail />} />
           <Route path="/add-book" element={session ? <AddBook /> : <Navigate to="/" />} />
           <Route path="/profile" element={session ? <Profile /> : <Navigate to="/" />} />
           <Route path="/notifications" element={session ? <Notifications /> : <Navigate to="/" />} />
           <Route path="/borrow/:id" element={session ? <BorrowFlow /> : <Navigate to="/" />} />
+          <Route path="/chat/:requestId" element={session ? <Chat /> : <Navigate to="/" />} />
         </Routes>
       </main>
 
@@ -62,7 +70,7 @@ function App() {
       <div className="md:hidden fixed bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-500 to-secondary-500"></div>
 
       {/* Auth Modal */}
-      <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} />
+      <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} initialMode={authMode} />
     </div>
   )
 }

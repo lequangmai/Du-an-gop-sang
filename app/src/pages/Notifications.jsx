@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { Bell, CheckCircle2, Clock, XCircle, ChevronRight, MessageSquare } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
 const Notifications = () => {
+  const navigate = useNavigate()
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -12,35 +14,114 @@ const Notifications = () => {
 
   const fetchNotifications = async () => {
     try {
-      // Mock data for demo
-      setNotifications([
-        {
-          id: 1,
-          title: 'Yêu cầu mượn mới!',
-          message: 'Lê Hải đã gửi yêu cầu mượn cuốn "Nhà Giả Kim".',
-          type: 'request',
-          created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 mins ago
-          is_read: false
-        },
-        {
-          id: 2,
-          title: 'Sách sắp đến hạn trả',
-          message: 'Cuốn "Đắc Nhân Tâm" sẽ hết hạn trong 2 ngày tới. Đừng quên trả sách nhé!',
-          type: 'reminder',
-          created_at: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(), // 5 hours ago
-          is_read: true
-        },
-        {
-          id: 3,
-          title: 'Yêu cầu đã được chấp nhận',
-          message: 'Trần Minh đã chấp nhận cho bạn mượn cuốn "Lược Sử Loài Người".',
-          type: 'success',
-          created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
-          is_read: true
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Fetch borrow requests where user is either the borrower OR the owner of the book
+      // Note: In a real Supabase setup, you might need two separate queries or a complex filter if owner_id is in the books table.
+      // For now, let's fetch and filter in JS to ensure it works for both Mock and Real.
+      const { data, error } = await supabase
+        .from('borrow_requests')
+        .select('*, books(*), profiles:borrower_id(*)')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      
+      // Map requests to notification format based on user's role in the request
+      const formatted = data.map(req => {
+        const isBorrower = req.borrower_id === user.id
+        const isOwner = req.books?.owner_id === user.id || (!req.books?.owner_id && user.id === 'demo-user')
+        
+        let title, message, type
+        
+        if (isOwner) {
+          // Notifications for the owner
+          if (req.status === 'pending_owner') {
+            title = 'Yêu cầu mượn mới!'
+            message = `${req.profiles?.full_name || 'Người dùng'} muốn mượn cuốn "${req.books?.title || 'Sách'}". Admin đã duyệt qua.`
+            type = 'request'
+          } else if (req.status === 'pending_admin') {
+            title = 'Yêu cầu đang chờ Admin'
+            message = `Có yêu cầu mượn cuốn "${req.books?.title}". Đang chờ Admin kiểm tra thông tin người mượn.`
+            type = 'reminder'
+          } else if (req.status === 'approved') {
+            title = 'Bắt đầu cho mượn'
+            message = `Bạn đã đồng ý cho mượn cuốn "${req.books?.title}". Hãy nhắn tin để hẹn ngày gặp.`
+            type = 'success'
+          } else {
+            title = 'Cập nhật yêu cầu'
+            message = `Yêu cầu cho cuốn "${req.books?.title}" có trạng thái mới: ${req.status}`
+            type = 'info'
+          }
+        } else if (isBorrower) {
+          // Notifications for the borrower
+          if (req.status === 'pending_admin') {
+            title = 'Gửi yêu cầu thành công'
+            message = `Yêu cầu mượn cuốn "${req.books?.title}" đang được Admin kiểm tra.`
+            type = 'request'
+          } else if (req.status === 'pending_owner') {
+            title = 'Admin đã duyệt!'
+            message = `Admin đã duyệt yêu cầu của bạn. Đang chờ chủ sách phản hồi.`
+            type = 'success'
+          } else if (req.status === 'approved') {
+            title = 'Chủ sách đã đồng ý!'
+            message = `Tuyệt vời! Chủ sách đã đồng ý cho bạn mượn cuốn "${req.books?.title}".`
+            type = 'success'
+          } else if (req.status === 'rejected') {
+            title = 'Yêu cầu bị từ chối'
+            message = `Rất tiếc, yêu cầu mượn cuốn "${req.books?.title}" không được chấp nhận.`
+            type = 'error'
+          } else {
+            title = 'Cập nhật yêu cầu'
+            message = `Trạng thái yêu cầu mượn cuốn "${req.books?.title}": ${req.status}`
+            type = 'info'
+          }
         }
-      ])
+
+        return {
+          id: req.id,
+          title,
+          message,
+          type,
+          created_at: req.created_at,
+          is_read: req.status === 'completed',
+          status: req.status,
+          book_id: req.book_id,
+          isOwner,
+          isBorrower
+        }
+      }).filter(n => n.title) // Filter out any empty ones
+
+      setNotifications(formatted)
+    } catch (error) {
+      console.error('Lỗi tải thông báo:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleAction = async (id, bookId, status) => {
+    try {
+      const { error } = await supabase
+        .from('borrow_requests')
+        .update({ status: status === 'approve' ? 'approved' : 'rejected' })
+        .eq('id', id)
+      
+      if (!error && status === 'approve') {
+        // Also update the book status to 'borrowed'
+        await supabase
+          .from('books')
+          .update({ status: 'borrowed' })
+          .eq('id', bookId)
+        
+        alert('Đã chấp nhận yêu cầu mượn!')
+      } else if (!error && status === 'reject') {
+        alert('Đã từ chối yêu cầu.')
+      }
+
+      fetchNotifications() // Refresh list
+    } catch (err) {
+      alert('Không thể thực hiện yêu cầu. Vui lòng thử lại.')
     }
   }
 
@@ -85,11 +166,37 @@ const Notifications = () => {
               </div>
               <p className="text-sm text-slate-600 leading-relaxed mb-3">{noti.message}</p>
               <div className="flex gap-2">
-                {noti.type === 'request' && (
+                {noti.type === 'request' && noti.status === 'pending' && (
                   <>
-                    <button className="btn btn-primary text-xs px-4 py-2">Xác nhận</button>
-                    <button className="btn bg-slate-100 text-slate-600 text-xs px-4 py-2 hover:bg-red-50 hover:text-red-500">Từ chối</button>
+                    <button 
+                      onClick={() => handleAction(noti.id, noti.book_id, 'approve')}
+                      className="btn btn-primary text-xs px-4 py-2"
+                    >
+                      Xác nhận
+                    </button>
+                    <button 
+                      onClick={() => handleAction(noti.id, noti.book_id, 'reject')}
+                      className="btn bg-slate-100 text-slate-600 text-xs px-4 py-2 hover:bg-red-50 hover:text-red-500"
+                    >
+                      Từ chối
+                    </button>
                   </>
+                )}
+                {noti.status !== 'pending' && (
+                  <div className="flex flex-col gap-2">
+                    <span className={`text-xs font-bold ${noti.status === 'approved' ? 'text-green-500' : 'text-red-500'}`}>
+                      {noti.status === 'approved' ? 'Đã chấp nhận' : 'Đã từ chối'}
+                    </span>
+                    {noti.status === 'approved' && (
+                      <button 
+                        onClick={() => navigate(`/chat/${noti.id}`)}
+                        className="flex items-center gap-2 text-primary-600 font-bold text-xs bg-primary-50 px-3 py-2 rounded-xl hover:bg-primary-100 transition-colors"
+                      >
+                        <MessageSquare size={14} />
+                        Nhắn tin trao đổi
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

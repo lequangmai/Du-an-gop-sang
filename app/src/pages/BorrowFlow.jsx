@@ -71,7 +71,7 @@ const BorrowFlow = () => {
           note,
           borrow_days: borrowDays,
           expected_return_date: returnDate.toISOString(),
-          status: 'pending'
+          status: 'pending_admin'
         })
       }
     } catch (e) {

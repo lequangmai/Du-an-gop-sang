@@ -47,7 +47,10 @@ const Navbar = ({ session, onAuthOpen }) => {
                 </Link>
               </>
             ) : (
-              <button onClick={onAuthOpen} className="btn btn-primary text-sm px-6">Đăng nhập</button>
+              <div className="flex gap-3">
+                <button onClick={() => onAuthOpen('login')} className="text-sm font-semibold text-slate-600 hover:text-slate-900 px-4 transition-colors">Đăng nhập</button>
+                <button onClick={() => onAuthOpen('signup')} className="btn btn-primary text-sm px-6 shadow-md shadow-primary-500/30">Đăng ký</button>
+              </div>
             )}
           </nav>
         </div>

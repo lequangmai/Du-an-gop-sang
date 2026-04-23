@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, Camera, BookOpen, MapPin, Tag, DollarSign, CheckCircle2, AlertCircle, Plus } from 'lucide-react'
+import { ChevronLeft, Camera, BookOpen, MapPin, Tag, DollarSign, CheckCircle2, AlertCircle, Plus, Image as ImageIcon } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 const CATEGORIES = ['Văn học', 'Kinh tế', 'Kỹ năng sống', 'Lịch sử', 'Khoa học', 'Thiếu nhi', 'Ngoại ngữ', 'Khác']
@@ -9,10 +9,11 @@ const CONDITIONS = [
   { value: 'good', label: 'Tốt', desc: 'Sách còn đẹp, ít dùng' },
   { value: 'fair', label: 'Bình thường', desc: 'Có dấu vết sử dụng nhưng vẫn đọc được' },
 ]
-const DISTRICTS = ['Quận 1', 'Quận 3', 'Quận 5', 'Quận 7', 'Quận 10', 'Bình Thạnh', 'Gò Vấp', 'Tân Bình', 'Thủ Đức', 'Bình Tân', 'Quận 12', 'Khác']
+const DISTRICTS = ['Quận 1', 'Quận 3', 'Quận 4', 'Quận 5', 'Quận 6', 'Quận 7', 'Quận 8', 'Quận 10', 'Quận 11', 'Quận 12', 'Bình Tân', 'Bình Thạnh', 'Gò Vấp', 'Phú Nhuận', 'Tân Bình', 'Tân Phú', 'TP Thủ Đức', 'Bình Chánh', 'Cần Giờ', 'Củ Chi', 'Hóc Môn', 'Nhà Bè', 'Khác']
 
 const AddBook = () => {
   const navigate = useNavigate()
+  const fileInputRef = useRef(null)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [form, setForm] = useState({
@@ -30,6 +31,21 @@ const AddBook = () => {
 
   const set = (key, value) => setForm(f => ({ ...f, [key]: value }))
 
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Vui lòng chọn ảnh nhỏ hơn 5MB")
+        return
+      }
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        set('image_url', reader.result)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
   const validate = () => {
     const e = {}
     if (!form.title.trim()) e.title = 'Vui lòng nhập tên sách'
@@ -42,7 +58,10 @@ const AddBook = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!validate()) return
+    if (!validate()) {
+      alert('⚠️ Vui lòng điền đầy đủ thông tin bắt buộc!\n\nBạn cần nhập/chọn đủ:\n- Tên sách\n- Tác giả\n- Thể loại\n- Vị trí (Quận/Huyện)')
+      return
+    }
     setLoading(true)
 
     try {
@@ -52,7 +71,7 @@ const AddBook = () => {
       const payload = {
         ...form,
         owner_id: user.id,
-        status: 'available',
+        status: 'pending',
         deposit_amount: form.deposit_required ? Number(form.deposit_amount) : null,
         image_url: form.image_url || `https://covers.openlibrary.org/b/title/${encodeURIComponent(form.title)}-L.jpg`,
       }
@@ -63,7 +82,6 @@ const AddBook = () => {
       setSuccess(true)
     } catch (err) {
       console.error(err)
-      // If no DB, still show success for demo
       setSuccess(true)
     } finally {
       setLoading(false)
@@ -73,14 +91,17 @@ const AddBook = () => {
   if (success) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-6 text-center">
-        <div className="w-28 h-28 bg-primary-100 rounded-full flex items-center justify-center mb-6">
-          <CheckCircle2 size={56} className="text-primary-500" />
+        <div className="w-28 h-28 bg-amber-100 rounded-full flex items-center justify-center mb-6">
+          <BookOpen size={56} className="text-amber-500" />
         </div>
-        <h2 className="text-3xl font-bold text-slate-800 mb-3">Đăng thành công! 🎉</h2>
-        <p className="text-slate-500 mb-10 max-w-xs leading-relaxed">
-          Sách <strong className="text-slate-700">"{form.title}"</strong> của bạn đã được đăng lên cộng đồng Góp Sáng.
+        <h2 className="text-3xl font-bold text-slate-800 mb-3">Đã gửi yêu cầu! 📝</h2>
+        <p className="text-slate-500 mb-4 max-w-xs leading-relaxed">
+          Sách <strong className="text-slate-700">"{form.title}"</strong> đã được gửi lên hệ thống và đang chờ Admin duyệt.
         </p>
-        <button onClick={() => navigate('/')} className="btn btn-primary px-10 py-4 text-base mb-3">
+        <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl mb-10 text-sm text-amber-700">
+          Thông báo sẽ được gửi cho bạn khi sách sẵn sàng chia sẻ.
+        </div>
+        <button onClick={() => navigate('/')} className="btn btn-primary px-10 py-4 text-base mb-3 shadow-lg shadow-primary-500/30">
           Về trang chủ
         </button>
         <button onClick={() => { setSuccess(false); setForm({ title: '', author: '', description: '', category: '', condition: 'good', location_district: '', image_url: '', deposit_required: false, deposit_amount: 50000 }) }}
@@ -108,23 +129,51 @@ const AddBook = () => {
       <form onSubmit={handleSubmit} className="px-6 py-6 space-y-6">
 
         {/* Image Upload Placeholder */}
-        <div className="card p-0 overflow-hidden">
-          <div className="h-40 bg-gradient-to-br from-primary-50 to-secondary-50 flex flex-col items-center justify-center gap-3 cursor-pointer hover:from-primary-100 transition-all">
-            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm">
-              <Camera size={28} className="text-slate-400" />
-            </div>
-            <div className="text-center">
-              <p className="font-bold text-slate-600 text-sm">Thêm ảnh bìa sách</p>
-              <p className="text-xs text-slate-400">Hoặc nhập URL ảnh bên dưới</p>
-            </div>
+        <div className="card p-0 overflow-hidden relative">
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            onChange={handleImageUpload}
+            className="hidden"
+          />
+          <div 
+            onClick={() => fileInputRef.current?.click()}
+            className="h-48 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-slate-50 border-2 border-dashed border-slate-200 m-4 rounded-3xl transition-all relative overflow-hidden group">
+            
+            {form.image_url ? (
+              <>
+                <img src={form.image_url} alt="Bìa sách" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white gap-2">
+                   <ImageIcon size={28} />
+                   <span className="font-bold text-sm">Đổi ảnh khác</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-100 text-primary-500 group-hover:scale-110 transition-transform">
+                  <Camera size={26} strokeWidth={2.5} />
+                </div>
+                <div className="text-center">
+                  <p className="font-bold text-slate-700 text-sm">Tải ảnh bìa lên</p>
+                  <p className="text-xs text-slate-400 mt-1">Hỗ trợ JPG, PNG (Max 5MB)</p>
+                </div>
+              </>
+            )}
           </div>
-          <div className="p-4 border-t border-slate-100">
+          
+          <div className="px-4 pb-4">
+            <div className="flex items-center gap-2 mb-2">
+               <div className="h-[1px] flex-1 bg-slate-100"></div>
+               <span className="text-xs font-bold text-slate-300 uppercase">Hoặc</span>
+               <div className="h-[1px] flex-1 bg-slate-100"></div>
+            </div>
             <input
               type="url"
-              placeholder="https://... (URL ảnh bìa sách)"
+              placeholder="https://... (Dán đường link ảnh nếu có)"
               value={form.image_url}
               onChange={e => set('image_url', e.target.value)}
-              className="input-field text-sm"
+              className="input-field text-sm bg-slate-50 border-transparent focus:bg-white"
             />
           </div>
         </div>
