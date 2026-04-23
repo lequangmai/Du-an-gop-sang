@@ -100,23 +100,29 @@ const Notifications = () => {
     }
   }
 
-  const handleAction = async (id, bookId, status) => {
+  const handleAction = async (id, bookId, status, currentStatus) => {
     try {
+      let nextStatus = status === 'approve' ? 'approved' : 'rejected'
+      
+      // If it's an admin action
+      if (currentStatus === 'pending_admin') {
+        nextStatus = status === 'approve' ? 'pending_owner' : 'rejected'
+      }
+
       const { error } = await supabase
         .from('borrow_requests')
-        .update({ status: status === 'approve' ? 'approved' : 'rejected' })
+        .update({ status: nextStatus })
         .eq('id', id)
       
-      if (!error && status === 'approve') {
-        // Also update the book status to 'borrowed'
-        await supabase
-          .from('books')
-          .update({ status: 'borrowed' })
-          .eq('id', bookId)
-        
-        alert('Đã chấp nhận yêu cầu mượn!')
-      } else if (!error && status === 'reject') {
-        alert('Đã từ chối yêu cầu.')
+      if (!error) {
+        if (nextStatus === 'approved') {
+          await supabase.from('books').update({ status: 'borrowed' }).eq('id', bookId)
+          alert('Đã chấp nhận yêu cầu mượn!')
+        } else if (nextStatus === 'pending_owner') {
+          alert('Đã duyệt yêu cầu (Admin)! Chờ chủ sách phê duyệt.')
+        } else {
+          alert('Đã từ chối yêu cầu.')
+        }
       }
 
       fetchNotifications() // Refresh list
@@ -166,23 +172,23 @@ const Notifications = () => {
               </div>
               <p className="text-sm text-slate-600 leading-relaxed mb-3">{noti.message}</p>
               <div className="flex gap-2">
-                {noti.type === 'request' && noti.status === 'pending' && (
+                {(noti.status === 'pending_owner' || noti.status === 'pending_admin') && noti.isOwner && (
                   <>
                     <button 
-                      onClick={() => handleAction(noti.id, noti.book_id, 'approve')}
+                      onClick={() => handleAction(noti.id, noti.book_id, 'approve', noti.status)}
                       className="btn btn-primary text-xs px-4 py-2"
                     >
-                      Xác nhận
+                      {noti.status === 'pending_admin' ? 'Duyệt (Admin)' : 'Xác nhận'}
                     </button>
                     <button 
-                      onClick={() => handleAction(noti.id, noti.book_id, 'reject')}
+                      onClick={() => handleAction(noti.id, noti.book_id, 'reject', noti.status)}
                       className="btn bg-slate-100 text-slate-600 text-xs px-4 py-2 hover:bg-red-50 hover:text-red-500"
                     >
                       Từ chối
                     </button>
                   </>
                 )}
-                {noti.status !== 'pending' && (
+                {noti.status === 'approved' && (
                   <div className="flex flex-col gap-2">
                     <span className={`text-xs font-bold ${noti.status === 'approved' ? 'text-green-500' : 'text-red-500'}`}>
                       {noti.status === 'approved' ? 'Đã chấp nhận' : 'Đã từ chối'}

@@ -8,11 +8,49 @@ const Navbar = ({ session, onAuthOpen }) => {
 
   const isActive = (path) => location.pathname === path
 
+  const [notifications, setNotifications] = useState([])
+  const [unreadCount, setUnreadCount] = useState(0)
+
   const handleAddBook = () => {
     if (session) {
       navigate('/add-book')
     } else {
       onAuthOpen()
+    }
+  }
+
+  useEffect(() => {
+    if (session) {
+      fetchUnreadCount()
+      const interval = setInterval(fetchUnreadCount, 5000)
+      return () => clearInterval(interval)
+    }
+  }, [session])
+
+  const fetchUnreadCount = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('borrow_requests')
+        .select('*, books(*)')
+      
+      if (error) {
+        console.error("Error fetching unread count:", error)
+        return
+      }
+      
+      if (data) {
+        const count = data.filter(req => {
+          const isOwner = req.books?.owner_id === session?.user?.id
+          const isBorrower = req.borrower_id === session?.user?.id
+          
+          if (isOwner && (req.status === 'pending_owner' || req.status === 'pending_admin')) return true
+          if (isBorrower && (req.status === 'approved' || req.status === 'rejected')) return true
+          return false
+        }).length
+        setUnreadCount(count)
+      }
+    } catch (e) {
+      console.error("Unread count fetch error:", e)
     }
   }
 
@@ -32,7 +70,14 @@ const Navbar = ({ session, onAuthOpen }) => {
 
           <nav className="flex items-center gap-8">
             <Link to="/" className={`font-medium ${isActive('/') ? 'text-primary-600' : 'text-slate-600 hover:text-primary-500'}`}>Trang chủ</Link>
-            <Link to="/notifications" className={`font-medium ${isActive('/notifications') ? 'text-primary-600' : 'text-slate-600 hover:text-primary-500'}`}>Thông báo</Link>
+            <Link to="/notifications" className={`font-medium relative ${isActive('/notifications') ? 'text-primary-600' : 'text-slate-600 hover:text-primary-500'}`}>
+              Thông báo
+              {unreadCount > 0 && (
+                <span className="absolute -top-2 -right-3 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full ring-2 ring-white">
+                  {unreadCount}
+                </span>
+              )}
+            </Link>
             {session ? (
               <>
                 <button
@@ -59,7 +104,17 @@ const Navbar = ({ session, onAuthOpen }) => {
       {/* Mobile Bottom Bar */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass border-t border-slate-100 px-6 py-3 flex items-center justify-between rounded-t-3xl shadow-[0_-8px_30px_rgb(0,0,0,0.04)]">
         <NavLink to="/" icon={<Home />} label="Chủ" active={isActive('/')} />
-        <NavLink to="/notifications" icon={<Bell />} label="Thông báo" active={isActive('/notifications')} />
+        <Link to="/notifications" className={`flex flex-col items-center gap-1 relative ${isActive('/notifications') ? 'text-primary-600' : 'text-slate-400'}`}>
+          <div className="relative">
+            <Bell size={24} strokeWidth={isActive('/notifications') ? 2.5 : 2} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold w-4 h-4 flex items-center justify-center rounded-full ring-2 ring-white">
+                {unreadCount}
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-wider">Thông báo</span>
+        </Link>
 
         {/* Central Action Button */}
         <div className="-translate-y-6">
