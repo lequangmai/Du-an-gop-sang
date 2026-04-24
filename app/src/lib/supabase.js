@@ -9,54 +9,54 @@ if (isMock) {
   console.warn('Thiếu cấu hình Supabase. Chạy ứng dụng trong chế độ Demo giả định.')
 }
 
-const baseDemoBooks = [
-  { id: '1', status: 'available', title: 'Nhà Giả Kim', author: 'Paulo Coelho', image_url: 'https://cdn0.fahasa.com/media/catalog/product/n/h/nhagiakim.jpg', location_district: 'Quận 1', profiles: { full_name: 'Minh Tuấn', rating: 4.8 } },
-  { id: '2', status: 'available', title: 'Đắc Nhân Tâm', author: 'Dale Carnegie', image_url: 'https://cdn0.fahasa.com/media/catalog/product/i/m/image_195509_1_36793.jpg', location_district: 'Bình Thạnh', profiles: { full_name: 'Thanh Hà', rating: 4.9 } },
-  { id: '3', status: 'available', title: 'Súng, Vi Trùng và Thép', author: 'Jared Diamond', image_url: 'https://cdn0.fahasa.com/media/catalog/product/s/u/sung-vi-trung-va-thep.jpg', location_district: 'Quận 7', profiles: { full_name: 'Hoàng Long', rating: 4.7 } },
-  { id: '4', status: 'available', title: 'Lược Sử Loài Người', author: 'Yuval Noah Harari', image_url: 'https://cdn0.fahasa.com/media/catalog/product/l/u/luoc-su-loai-nguoi.jpg', location_district: 'Bình Tân', profiles: { full_name: 'Ngọc Mai', rating: 5.0 } },
-  { id: '5', status: 'available', title: 'Tư Duy Nhanh Và Chậm', author: 'Daniel Kahneman', image_url: 'https://cdn0.fahasa.com/media/catalog/product/t/u/tu-duy-nhanh-va-cham.jpg', location_district: 'Gò Vấp', profiles: { full_name: 'Quang Minh', rating: 4.6 } },
-  { id: '6', status: 'available', title: 'Sapiens', author: 'Yuval Noah Harari', image_url: 'https://cdn0.fahasa.com/media/catalog/product/8/9/8935086843869.jpg', location_district: 'TP Thủ Đức', profiles: { full_name: 'Thu Hương', rating: 4.9 } }
-]
-
-function getDemoBooks() {
-  try {
-    const stored = localStorage.getItem('demo_books')
-    if (stored) return JSON.parse(stored)
-  } catch(e) {}
-  localStorage.setItem('demo_books', JSON.stringify(baseDemoBooks))
-  return baseDemoBooks
-}
-
-function getDemoMessages() {
-  try {
-    const stored = localStorage.getItem('demo_messages')
-    if (stored) return JSON.parse(stored)
-  } catch(e) {}
-  return []
-}
-
-function getDemoRequests() {
-  try {
-    const stored = localStorage.getItem('demo_requests')
-    if (stored) return JSON.parse(stored)
-  } catch(e) {}
-  // Initial demo request
-  const initialRequests = [
-    {
-      id: 'req1',
-      book_id: '1',
-      borrower_id: 'other-user',
-      status: 'pending_admin',
-      created_at: new Date().toISOString(),
-      books: baseDemoBooks[0],
-      profiles: { id: 'other-user', full_name: 'Lê Văn Luyện', rating: 4.2 }
-    }
-  ]
-  localStorage.setItem('demo_requests', JSON.stringify(initialRequests))
-  return initialRequests
-}
-
 async function customFetch(url, options) {
+  const baseDemoBooks = [
+    { id: '1', status: 'available', title: 'Nhà Giả Kim', author: 'Paulo Coelho', image_url: 'https://cdn0.fahasa.com/media/catalog/product/n/h/nhagiakim.jpg', location_district: 'Quận 1', profiles: { full_name: 'Minh Tuấn', rating: 4.8 } },
+    { id: '2', status: 'available', title: 'Đắc Nhân Tâm', author: 'Dale Carnegie', image_url: 'https://cdn0.fahasa.com/media/catalog/product/i/m/image_195509_1_36793.jpg', location_district: 'Bình Thạnh', profiles: { full_name: 'Thanh Hà', rating: 4.9 } },
+    { id: '3', status: 'available', title: 'Súng, Vi Trùng và Thép', author: 'Jared Diamond', image_url: 'https://cdn0.fahasa.com/media/catalog/product/s/u/sung-vi-trung-va-thep.jpg', location_district: 'Quận 7', profiles: { full_name: 'Hoàng Long', rating: 4.7 } },
+    { id: '4', status: 'available', title: 'Lược Sử Loài Người', author: 'Yuval Noah Harari', image_url: 'https://cdn0.fahasa.com/media/catalog/product/l/u/luoc-su-loai-nguoi.jpg', location_district: 'Bình Tân', profiles: { full_name: 'Ngọc Mai', rating: 5.0 } },
+    { id: '5', status: 'available', title: 'Tư Duy Nhanh Và Chậm', author: 'Daniel Kahneman', image_url: 'https://cdn0.fahasa.com/media/catalog/product/t/u/tu-duy-nhanh-va-cham.jpg', location_district: 'Gò Vấp', profiles: { full_name: 'Quang Minh', rating: 4.6 } },
+    { id: '6', status: 'available', title: 'Sapiens', author: 'Yuval Noah Harari', image_url: 'https://cdn0.fahasa.com/media/catalog/product/8/9/8935086843869.jpg', location_district: 'TP Thủ Đức', profiles: { full_name: 'Thu Hương', rating: 4.9 } }
+  ]
+
+  function getDemoBooks() {
+    try {
+      const stored = localStorage.getItem('demo_books')
+      if (stored) return JSON.parse(stored)
+    } catch(e) {}
+    localStorage.setItem('demo_books', JSON.stringify(baseDemoBooks))
+    return baseDemoBooks
+  }
+
+  function getDemoMessages() {
+    try {
+      const stored = localStorage.getItem('demo_messages')
+      if (stored) return JSON.parse(stored)
+    } catch(e) {}
+    return []
+  }
+
+  function getDemoRequests() {
+    try {
+      const stored = localStorage.getItem('demo_requests')
+      if (stored) return JSON.parse(stored)
+    } catch(e) {}
+    // Initial demo request
+    const initialRequests = [
+      {
+        id: 'req1',
+        book_id: '1',
+        borrower_id: 'other-user',
+        status: 'pending_admin',
+        created_at: new Date().toISOString(),
+        books: baseDemoBooks[0],
+        profiles: { id: 'other-user', full_name: 'Lê Văn Luyện', rating: 4.2 }
+      }
+    ]
+    localStorage.setItem('demo_requests', JSON.stringify(initialRequests))
+    return initialRequests
+  }
+
   // Fake Signup
   if (url.includes('/signup')) {
     return new Response(JSON.stringify({ 
