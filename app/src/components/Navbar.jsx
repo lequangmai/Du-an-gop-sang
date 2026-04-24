@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Home, BookOpen, Bell, User, Search, PlusCircle } from 'lucide-react'
+import { supabase } from '../lib/supabase'
 
 const Navbar = ({ session, onAuthOpen }) => {
   const location = useLocation()

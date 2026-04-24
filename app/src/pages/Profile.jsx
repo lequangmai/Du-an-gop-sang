@@ -343,7 +343,7 @@ const Profile = () => {
               </div>
             )}
           </div>
-        )}}
+        )}
 
         {/* Menu Sections */}
         <div className="space-y-4 mb-10">
@@ -389,7 +389,6 @@ const Profile = () => {
           )}
 
           {/* Books I am lending (New) */}
-          {mySentRequests.some(r => r.status === 'approved') || borrowRequests.some(r => r.status === 'approved') || true /* check for any approved where I am owner */}
           {
             (() => {
               const activeLending = historyRequests.filter(r => 

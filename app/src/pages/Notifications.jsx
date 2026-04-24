@@ -7,6 +7,7 @@ const Notifications = () => {
   const navigate = useNavigate()
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState(null)
 
   useEffect(() => {
     fetchNotifications()
@@ -14,8 +15,9 @@ const Notifications = () => {
 
   const fetchNotifications = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (!authUser) return
+      setUser(authUser)
 
       // Fetch borrow requests where user is either the borrower OR the owner of the book
       // Note: In a real Supabase setup, you might need two separate queries or a complex filter if owner_id is in the books table.
@@ -29,12 +31,17 @@ const Notifications = () => {
       
       // Map requests to notification format based on user's role in the request
       const formatted = data.map(req => {
-        const isBorrower = req.borrower_id === user.id
-        const isOwner = req.books?.owner_id === user.id || (!req.books?.owner_id && user.id === 'demo-user')
+        const isBorrower = req.borrower_id === authUser.id
+        const isOwner = req.books?.owner_id === authUser.id || (!req.books?.owner_id && authUser.id === 'demo-user')
+        const isAdmin = authUser.user_metadata?.role === 'admin' || authUser.id === 'demo-user'
         
         let title, message, type
         
-        if (isOwner) {
+        if (isAdmin && req.status === 'pending_admin') {
+          title = 'Yêu cầu mượn mới (Admin)'
+          message = `${req.profiles?.full_name || 'Người dùng'} muốn mượn cuốn "${req.books?.title || 'Sách'}". Hãy kiểm tra và duyệt.`
+          type = 'request'
+        } else if (isOwner) {
           // Notifications for the owner
           if (req.status === 'pending_owner') {
             title = 'Yêu cầu mượn mới!'
@@ -88,7 +95,8 @@ const Notifications = () => {
           status: req.status,
           book_id: req.book_id,
           isOwner,
-          isBorrower
+          isBorrower,
+          isAdmin
         }
       }).filter(n => n.title) // Filter out any empty ones
 
@@ -172,7 +180,8 @@ const Notifications = () => {
               </div>
               <p className="text-sm text-slate-600 leading-relaxed mb-3">{noti.message}</p>
               <div className="flex gap-2">
-                {(noti.status === 'pending_owner' || noti.status === 'pending_admin') && noti.isOwner && (
+                {((noti.status === 'pending_owner' && noti.isOwner) || 
+                  (noti.status === 'pending_admin' && (noti.isOwner || noti.isAdmin))) && (
                   <>
                     <button 
                       onClick={() => handleAction(noti.id, noti.book_id, 'approve', noti.status)}
